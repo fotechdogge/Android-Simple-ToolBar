@@ -1,34 +1,35 @@
-package com.example.dog.mtoolbarsimple;
+package com.example.dog.mtoolbarsimple.base;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.TabLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.GravityCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.MenuItem;
+import android.view.Menu;
 
+import com.example.dog.mtoolbarsimple.R;
 import com.example.dog.mtoolbarsimple.adapter.PagerAdapter;
 import com.example.dog.mtoolbarsimple.custom.CustomDrawerToggle;
 import com.example.dog.mtoolbarsimple.custom.CustomViewPager;
-import com.example.dog.mtoolbarsimple.fragment.FragmentActivityFour;
-import com.example.dog.mtoolbarsimple.fragment.FragmentActivityOne;
-import com.example.dog.mtoolbarsimple.fragment.FragmentActivityThree;
-import com.example.dog.mtoolbarsimple.fragment.FragmentActivityTwo;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener
+/**
+ * Created by Dog on 2018/3/30.
+ */
 
+public class BaseMainActivity extends AppCompatActivity
 {
+    // listener
+    private NavigationView.OnNavigationItemSelectedListener navigation_item_selected_listener = null;
+
     // toolbar
     private Toolbar            mToolbar;
     private DrawerLayout       drawer;
@@ -38,11 +39,8 @@ public class MainActivity extends AppCompatActivity
     // tab layout
     private TabLayout            tabLayout;
     private CustomViewPager      pager;
-    private List<Fragment>       fragments;
     private FragmentPagerAdapter pagerAdapter;
 
-    // tabs
-    private String[] tab_text = {"One", "Two", "Three", "Four"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -50,16 +48,22 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         super.setContentView(R.layout.activity_main);
 
+        findView();
         init_actionBar();
-        init_viewPager();
+    }
+
+    private void findView()
+    {
+        mToolbar = findViewById(R.id.toolbar_main);
+        drawer = findViewById(R.id.drawer_layout);
+        navigationView = findViewById(R.id.nav_view);
     }
 
     private void init_actionBar()
     {
-        mToolbar = findViewById(R.id.toolbar_main);
-        mToolbar.setTitle("ToolBar Title");
+        mToolbar.setTitle("Base ToolBar Title");
         mToolbar.setTitleTextColor(Color.WHITE);
-        mToolbar.setSubtitle("Subtitle");
+        mToolbar.setSubtitle("Base Subtitle");
         mToolbar.setSubtitleTextColor(Color.RED);
         setSupportActionBar(mToolbar);
 
@@ -67,7 +71,6 @@ public class MainActivity extends AppCompatActivity
         actionBar.setDisplayHomeAsUpEnabled(true);
 
 
-        drawer = findViewById(R.id.drawer_layout);
         toggle = new CustomDrawerToggle(this,
                 drawer, mToolbar,
                 R.string.navigation_drawer_open,
@@ -75,20 +78,33 @@ public class MainActivity extends AppCompatActivity
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        navigationView = findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
 
         // first item selection
-        MenuItem first = navigationView.getMenu().getItem(0);
-        navigationView.setCheckedItem(first.getItemId());
+//        MenuItem first = navigationView.getMenu().getItem(0);
+//        navigationView.setCheckedItem(first.getItemId());
     }
 
-    private void init_viewPager()
+    public void init_viewPager(List<Fragment> fragments, String[] tab_texts)
     {
+        if (fragments == null) {
+            try {
+                throw new Exception("fragments is null");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (tab_texts == null) {
+            try {
+                throw new Exception("tab_texts is null");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         // TabLayout
         {
             tabLayout = findViewById(R.id.tab_layout);
-            for (String text : tab_text)
+            for (String text : tab_texts)
                 tabLayout.addTab(tabLayout.newTab().setText(text));
         }
 
@@ -96,11 +112,6 @@ public class MainActivity extends AppCompatActivity
         {
             pager = findViewById(R.id.pager);
             pager.setPagingEnabled(false);
-            fragments = new ArrayList<>();
-            fragments.add(new FragmentActivityOne());
-            fragments.add(new FragmentActivityTwo());
-            fragments.add(new FragmentActivityThree());
-            fragments.add(new FragmentActivityFour());
             pagerAdapter = new PagerAdapter(getSupportFragmentManager(), fragments);
             pager.setAdapter(pagerAdapter);
         }
@@ -114,9 +125,15 @@ public class MainActivity extends AppCompatActivity
                 {
                     int pos = tab.getPosition();
                     pager.setCurrentItem(pos);
-                    navigationView.setCheckedItem(
-                            navigationView.getMenu().getItem(pos).getItemId()
-                    );
+                    Menu menu = navigationView.getMenu();
+                    if (menu != null) {
+                        int item_size = navigationView.getMenu().size();
+                        if (item_size == tabLayout.getTabCount()) {
+                            navigationView.setCheckedItem(
+                                    navigationView.getMenu().getItem(pos).getItemId()
+                            );
+                        }
+                    }
                 }
 
                 @Override
@@ -135,9 +152,21 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    public void test()
+    public void setNavigationItemSelectedListener(NavigationView.OnNavigationItemSelectedListener navigation_item_selected_listener)
     {
-        System.err.println("test()");
+        this.navigation_item_selected_listener = navigation_item_selected_listener;
+        if (navigation_item_selected_listener != null)
+            navigationView.setNavigationItemSelectedListener(navigation_item_selected_listener);
+    }
+
+    public TabLayout getTabLayout()
+    {
+        return this.tabLayout;
+    }
+
+    public ViewPager getViewPager()
+    {
+        return this.pager;
     }
 
 
@@ -153,22 +182,4 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    @SuppressWarnings("StatementWithEmptyBody")
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item)
-    {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-
-        if (id == R.id.nav_tab1) pager.setCurrentItem(0, true);
-        else if (id == R.id.nav_tab2) pager.setCurrentItem(1, true);
-        else if (id == R.id.nav_tab3) pager.setCurrentItem(2, true);
-        else if (id == R.id.nav_tab4) pager.setCurrentItem(3, true);
-        else if (id == R.id.nav_act1) ;
-        else if (id == R.id.nav_act2) ;
-
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
-        return true;
-    }
 }
