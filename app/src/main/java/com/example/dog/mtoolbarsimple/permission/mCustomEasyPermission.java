@@ -5,8 +5,11 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
@@ -15,12 +18,16 @@ import android.view.View;
 
 import com.example.dog.mtoolbarsimple.Utils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class mCustomEasyPermission {
 
     private static final String TAG = "mCustomEasyPermission";
-    private static final String SNACKBAR_ACTION_TEXT = "Set";
+    private static final String ACTION_BUTTON_TEXT_ALLOW = "Allow";
+    private static final String ACTION_BUTTON_TEXT_DENY = "Deny";
+    private static final String ACTION_BUTTON_TEXT_GO = "Go";
+    private static final String ACTION_BUTTON_TEXT_CANCEL = "Cancel";
 
     public interface PermissionCallbacks extends ActivityCompat.OnRequestPermissionsResultCallback {
 
@@ -62,7 +69,7 @@ public class mCustomEasyPermission {
      * @param requestCode 當次請求之 識別碼.
      * @param perms       權限陣列.
      */
-    public static void requestPermissions(final Object object, String rationale, final int requestCode, final String[] perms) {
+    public static void requestPermissions(final Object object, String rationale, final int requestCode, final String... perms) {
 
         // 確認該物件是否為 Activity or Fragment ，否則跳出 Exception.
         checkCallingObjectSuitability(object);
@@ -75,19 +82,59 @@ public class mCustomEasyPermission {
 
         // 是否需要彈出解釋窗口
         if (shouldShowRationale) {
+
             Activity activity = getActivity(object);
+
             if (activity == null)
                 return;
-            Snackbar.make(activity.findViewById(android.R.id.content), rationale, Snackbar.LENGTH_LONG)
-                    .setAction(SNACKBAR_ACTION_TEXT, new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            exceuptPermissionRequest(object, requestCode, perms);
-                        }
-                    })
-                    .show();
+
+            final Snackbar snackbar = Snackbar.make(activity.findViewById(android.R.id.content), rationale, Snackbar.LENGTH_LONG);
+            snackbar.setAction(ACTION_BUTTON_TEXT_ALLOW, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    executePermissionRequest(object, requestCode, perms);
+                }
+            });
+            snackbar.setAction(ACTION_BUTTON_TEXT_DENY, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    snackbar.dismiss();
+                }
+            });
+            snackbar.show();
+
         } else {
-            exceuptPermissionRequest(object, requestCode, perms);
+            executePermissionRequest(object, requestCode, perms);
+        }
+    }
+
+    /**
+     * 如果有任何權限被允許或拒絕， Activity 會透過 callbacks 接收到相應的結果.
+     *
+     * @param requestCode  傳回的申請識別碼.
+     * @param permissions  傳回的已申請之權限.
+     * @param grantResults 傳回的申請結果.
+     * @param callbacks    {@link PermissionCallbacks}.
+     */
+    public static void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults, PermissionCallbacks... callbacks) {
+        ArrayList<String> granted = new ArrayList<>();
+        ArrayList<String> denied = new ArrayList<>();
+        for (int i = 0; i < grantResults.length; i++) {
+            String perm = permissions[i];
+            if (grantResults[i] == PackageManager.PERMISSION_GRANTED)
+                granted.add(perm);
+            else
+                denied.add(perm);
+        }
+
+        for (PermissionCallbacks cb : callbacks) {
+            if (!granted.isEmpty()) {
+                cb.onPermissionsGranted(requestCode, granted);
+            }
+
+            if (!denied.isEmpty()) {
+                cb.onPermissionsDenied(requestCode, denied);
+            }
         }
     }
 
@@ -112,6 +159,39 @@ public class mCustomEasyPermission {
     }
 
     /**
+     * 前往應用之權限設定畫面.
+     *
+     * @param object      Activity object.
+     * @param rational    申請權限解釋.
+     * @param requestCode 申請識別碼.
+     */
+    public static void showSnackbarToStartSetPermissionsActivity(
+            Object object, String rational, final int requestCode) {
+
+        checkCallingObjectSuitability(object);
+
+        final Activity activity = getActivity(object);
+        if (activity == null)
+            return;
+
+        final Snackbar snackbar = Snackbar.make(activity.findViewById(android.R.id.content), rational, Snackbar.LENGTH_LONG);
+        snackbar.setAction(ACTION_BUTTON_TEXT_GO, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                activity.startActivityForResult(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        .setData(Uri.parse("package:" + activity.getPackageName())), requestCode);
+            }
+        });
+        snackbar.setAction(ACTION_BUTTON_TEXT_CANCEL, new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                snackbar.dismiss();
+            }
+        });
+        snackbar.show();
+    }
+
+    /**
      * 根據 Activity object 類型來執行權限申請.
      *
      * @param object      受識別之 object.
@@ -119,7 +199,7 @@ public class mCustomEasyPermission {
      * @param perms       權限陣列.
      */
     @TargetApi(23)
-    private static void exceuptPermissionRequest(Object object, int requestCode, String[] perms) {
+    private static void executePermissionRequest(Object object, int requestCode, String... perms) {
         checkCallingObjectSuitability(object);
         if (object instanceof Activity)
             ActivityCompat.requestPermissions((Activity) object, perms, requestCode);
@@ -169,7 +249,6 @@ public class mCustomEasyPermission {
      *
      * @param object 受識別之 object.
      */
-
     private static void checkCallingObjectSuitability(Object object) {
         // Make sure Object is an Activity or Fragment
         boolean isActivity = object instanceof Activity;
