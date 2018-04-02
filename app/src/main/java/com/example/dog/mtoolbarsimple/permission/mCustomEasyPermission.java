@@ -2,9 +2,11 @@ package com.example.dog.mtoolbarsimple.permission;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -21,15 +23,17 @@ import com.example.dog.mtoolbarsimple.Utils;
 import java.util.ArrayList;
 import java.util.List;
 
-public class mCustomEasyPermission {
+public class mCustomEasyPermission
+{
 
-    private static final String TAG = "mCustomEasyPermission";
-    private static final String ACTION_BUTTON_TEXT_ALLOW = "Allow";
-    private static final String ACTION_BUTTON_TEXT_DENY = "Deny";
-    private static final String ACTION_BUTTON_TEXT_GO = "Go";
+    private static final String TAG                       = "mCustomEasyPermission";
+    private static final String ACTION_BUTTON_TEXT_ALLOW  = "Allow";
+    private static final String ACTION_BUTTON_TEXT_DENY   = "Deny";
+    private static final String ACTION_BUTTON_TEXT_GO     = "Go";
     private static final String ACTION_BUTTON_TEXT_CANCEL = "Cancel";
 
-    public interface PermissionCallbacks extends ActivityCompat.OnRequestPermissionsResultCallback {
+    public interface PermissionCallbacks extends ActivityCompat.OnRequestPermissionsResultCallback
+    {
 
         void onPermissionsGranted(int requestCode, List<String> perms);
 
@@ -53,7 +57,7 @@ public class mCustomEasyPermission {
         // 當中一項權限未授權，其返回 false
         for (String perm : perms) {
             if ((ContextCompat.checkSelfPermission(context, perm)
-                    == PackageManager.PERMISSION_GRANTED)) {
+                    != PackageManager.PERMISSION_GRANTED)) {
                 return false;
             }
         }
@@ -88,20 +92,8 @@ public class mCustomEasyPermission {
             if (activity == null)
                 return;
 
-            final Snackbar snackbar = Snackbar.make(activity.findViewById(android.R.id.content), rationale, Snackbar.LENGTH_LONG);
-            snackbar.setAction(ACTION_BUTTON_TEXT_ALLOW, new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    executePermissionRequest(object, requestCode, perms);
-                }
-            });
-            snackbar.setAction(ACTION_BUTTON_TEXT_DENY, new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    snackbar.dismiss();
-                }
-            });
-            snackbar.show();
+//            showSnackbarIfShouldShowRationale(activity, rationale, requestCode);
+            showRationaleAlertDialgo(activity, rationale, requestCode, perms);
 
         } else {
             executePermissionRequest(object, requestCode, perms);
@@ -118,7 +110,7 @@ public class mCustomEasyPermission {
      */
     public static void onRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults, PermissionCallbacks... callbacks) {
         ArrayList<String> granted = new ArrayList<>();
-        ArrayList<String> denied = new ArrayList<>();
+        ArrayList<String> denied  = new ArrayList<>();
         for (int i = 0; i < grantResults.length; i++) {
             String perm = permissions[i];
             if (grantResults[i] == PackageManager.PERMISSION_GRANTED)
@@ -159,6 +151,63 @@ public class mCustomEasyPermission {
     }
 
     /**
+     * 彈出解釋 Snackbar.
+     *
+     * @param activity    activity.
+     * @param rationale   解釋文字串.
+     * @param requestCode 標示碼.
+     * @param perms       權限.
+     */
+    private static void showSnackbarIfShouldShowRationale(final Activity activity, String rationale, final int requestCode, final String... perms) {
+        final Snackbar snackbar = Snackbar.make(activity.findViewById(android.R.id.content), rationale, Snackbar.LENGTH_LONG);
+        snackbar.setAction(ACTION_BUTTON_TEXT_ALLOW, new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v) {
+                executePermissionRequest(activity, requestCode, perms);
+            }
+        });
+        snackbar.setAction(ACTION_BUTTON_TEXT_DENY, new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v) {
+                snackbar.dismiss();
+            }
+        });
+        snackbar.show();
+    }
+
+    /**
+     * 彈出解釋視窗.
+     *
+     * @param activity
+     * @param rationale
+     * @param requestCode
+     * @param perms
+     */
+    private static void showRationaleAlertDialgo(final Activity activity, String rationale, final int requestCode, final String... perms) {
+        new AlertDialog.Builder(activity)
+                .setCancelable(false)
+                .setMessage(rationale)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener()
+                {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        executePermissionRequest(activity, requestCode, perms);
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener()
+                {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                })
+                .create()
+                .show();
+    }
+
+    /**
      * 前往應用之權限設定畫面.
      *
      * @param object      Activity object.
@@ -175,14 +224,16 @@ public class mCustomEasyPermission {
             return;
 
         final Snackbar snackbar = Snackbar.make(activity.findViewById(android.R.id.content), rational, Snackbar.LENGTH_LONG);
-        snackbar.setAction(ACTION_BUTTON_TEXT_GO, new View.OnClickListener() {
+        snackbar.setAction(ACTION_BUTTON_TEXT_GO, new View.OnClickListener()
+        {
             @Override
             public void onClick(View v) {
                 activity.startActivityForResult(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                         .setData(Uri.parse("package:" + activity.getPackageName())), requestCode);
             }
         });
-        snackbar.setAction(ACTION_BUTTON_TEXT_CANCEL, new View.OnClickListener() {
+        snackbar.setAction(ACTION_BUTTON_TEXT_CANCEL, new View.OnClickListener()
+        {
             @Override
             public void onClick(View v) {
                 snackbar.dismiss();
@@ -227,7 +278,7 @@ public class mCustomEasyPermission {
     }
 
     private static android.support.v4.app.FragmentManager getSupportFragmentManager(Object object) {
-        if (object instanceof android.support.v4.app.FragmentActivity)
+        if (object instanceof FragmentActivity)
             return ((FragmentActivity) object).getSupportFragmentManager();
         else if (object instanceof android.support.v4.app.Fragment)
             return ((android.support.v4.app.Fragment) object).getFragmentManager();
@@ -251,10 +302,10 @@ public class mCustomEasyPermission {
      */
     private static void checkCallingObjectSuitability(Object object) {
         // Make sure Object is an Activity or Fragment
-        boolean isActivity = object instanceof Activity;
-        boolean isAppFragment = object instanceof android.app.Fragment;
+        boolean isActivity        = object instanceof Activity;
+        boolean isAppFragment     = object instanceof Fragment;
         boolean isSupportFragment = object instanceof android.support.v4.app.Fragment;
-        boolean isMinSdkM = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+        boolean isMinSdkM         = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
 
         if (!(isSupportFragment || isActivity || (isAppFragment && isMinSdkM))) {
             if (isAppFragment) {
