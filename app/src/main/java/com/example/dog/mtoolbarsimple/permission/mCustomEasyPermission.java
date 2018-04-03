@@ -4,21 +4,16 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
-import android.app.FragmentManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.provider.Settings;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.view.View;
-
-import com.example.dog.mtoolbarsimple.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +71,7 @@ public class mCustomEasyPermission
     public static void requestPermissions(final Object object, String rationale, final int requestCode, final String... perms) {
 
         // 確認該物件是否為 Activity or Fragment ，否則跳出 Exception.
-        checkCallingObjectSuitability(object);
+        Utils.checkCallingObjectSuitability(object);
 
         boolean shouldShowRationale = false;
         for (String perm : perms) {
@@ -87,13 +82,13 @@ public class mCustomEasyPermission
         // 是否需要彈出解釋窗口
         if (shouldShowRationale) {
 
-            Activity activity = getActivity(object);
+            Activity activity = Utils.getActivity(object);
 
             if (activity == null)
                 return;
 
 //            showSnackbarIfShouldShowRationale(activity, rationale, requestCode);
-            showRationaleAlertDialgo(activity, rationale, requestCode, perms);
+            showRationaleAlertDialog(activity, rationale, requestCode, perms);
 
         } else {
             executePermissionRequest(object, requestCode, perms);
@@ -185,7 +180,7 @@ public class mCustomEasyPermission
      * @param requestCode
      * @param perms
      */
-    private static void showRationaleAlertDialgo(final Activity activity, String rationale, final int requestCode, final String... perms) {
+    private static void showRationaleAlertDialog(final Activity activity, String rationale, final int requestCode, final String... perms) {
         new AlertDialog.Builder(activity)
                 .setCancelable(false)
                 .setMessage(rationale)
@@ -217,9 +212,9 @@ public class mCustomEasyPermission
     public static void showSnackbarToStartSetPermissionsActivity(
             Object object, String rational, final int requestCode) {
 
-        checkCallingObjectSuitability(object);
+        Utils.checkCallingObjectSuitability(object);
 
-        final Activity activity = getActivity(object);
+        final Activity activity = Utils.getActivity(object);
         if (activity == null)
             return;
 
@@ -251,7 +246,7 @@ public class mCustomEasyPermission
      */
     @TargetApi(23)
     private static void executePermissionRequest(Object object, int requestCode, String... perms) {
-        checkCallingObjectSuitability(object);
+        Utils.checkCallingObjectSuitability(object);
         if (object instanceof Activity)
             ActivityCompat.requestPermissions((Activity) object, perms, requestCode);
         else if (object instanceof Fragment)
@@ -260,60 +255,4 @@ public class mCustomEasyPermission
             ((android.support.v4.app.Fragment) object).requestPermissions(perms, requestCode);
     }
 
-    /**
-     * 取得該 Object 之 Activity.
-     *
-     * @param object 受識別之 object
-     * @return 若無，返回 null.
-     */
-    private static Activity getActivity(Object object) {
-        if (object instanceof Activity)
-            return (Activity) object;
-        else if (object instanceof Fragment)
-            return ((Fragment) object).getActivity();
-        else if (object instanceof android.support.v4.app.Fragment)
-            return ((android.support.v4.app.Fragment) object).getActivity();
-
-        return null;
-    }
-
-    private static android.support.v4.app.FragmentManager getSupportFragmentManager(Object object) {
-        if (object instanceof FragmentActivity)
-            return ((FragmentActivity) object).getSupportFragmentManager();
-        else if (object instanceof android.support.v4.app.Fragment)
-            return ((android.support.v4.app.Fragment) object).getFragmentManager();
-
-        return null;
-    }
-
-    private static FragmentManager getFragmentManager(Object object) {
-        if (object instanceof FragmentActivity)
-            return ((FragmentActivity) object).getFragmentManager();
-        else if (object instanceof Fragment)
-            return ((Fragment) object).getFragmentManager();
-
-        return null;
-    }
-
-    /**
-     * 檢查 Object 是否為 Activity 或 Fragment，若都不是，則包出異常 Exception.
-     *
-     * @param object 受識別之 object.
-     */
-    private static void checkCallingObjectSuitability(Object object) {
-        // Make sure Object is an Activity or Fragment
-        boolean isActivity        = object instanceof Activity;
-        boolean isAppFragment     = object instanceof Fragment;
-        boolean isSupportFragment = object instanceof android.support.v4.app.Fragment;
-        boolean isMinSdkM         = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
-
-        if (!(isSupportFragment || isActivity || (isAppFragment && isMinSdkM))) {
-            if (isAppFragment) {
-                throw new IllegalArgumentException(
-                        "Target SDK needs to be greater than 23 if caller is android.app.Fragment");
-            } else {
-                throw new IllegalArgumentException("Caller must be an Activity or a Fragment.");
-            }
-        }
-    }
 }
